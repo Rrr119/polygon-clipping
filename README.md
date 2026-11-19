@@ -31,6 +31,9 @@ polygonClipping.xor         (<geom>, ...<geoms>)
 
 /* The clipGeoms will be subtracted from the subjectGeom */
 polygonClipping.difference(<subjectGeom>, ...<clipGeoms>)
+
+/* Any function may take an optional options object as its last argument */
+polygonClipping.union(<geom>, ...<geoms>, { tolerance: 1e-9 })
 ```
 
 ### Input
@@ -44,6 +47,12 @@ Each positional argument (`<geom>`) may be either a Polygon or a MultiPolygon. T
 - winding order of rings does not matter.
 - inner rings may extend outside their outer ring. The portion of inner rings outside their outer ring is dropped.
 - inner rings may touch or overlap each other.
+
+### Options
+
+An optional options object may be passed as the final argument to any of the four boolean operations. Supported options:
+
+- **tolerance**: coordinates closer together than this (relatively speaking) will be snapped together and considered equal. Must be a positive, finite number. Defaults to `Number.EPSILON`. If your inputs are self-intersecting or at a very small (or very large) coordinate scale, the default tolerance may snap distinct points together and collapse the geometry - in which case, pass a smaller (or larger) tolerance here.
 
 ### Output
 

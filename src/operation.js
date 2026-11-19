@@ -1,5 +1,6 @@
 import SplayTree from "splaytree"
 import { getBboxOverlap } from "./bbox"
+import { setTolerance, resetTolerance } from "./flp"
 import * as geomIn from "./geom-in"
 import * as geomOut from "./geom-out"
 import rounder from "./rounder"
@@ -17,10 +18,24 @@ const POLYGON_CLIPPING_MAX_SWEEPLINE_SEGMENTS =
   env.POLYGON_CLIPPING_MAX_SWEEPLINE_SEGMENTS || 1000000
 
 export class Operation {
-  run(type, geom, moreGeoms) {
+  run(type, geom, moreGeoms, options = {}) {
     operation.type = type
     rounder.reset()
 
+    /* Apply an optional user-provided tolerance for coordinate snapping.
+     * This is especially relevant for self-intersecting inputs, where
+     * computed intersection points can otherwise be snapped away,
+     * collapsing the geometry to an empty result. */
+    if (options.tolerance !== undefined) setTolerance(options.tolerance)
+
+    try {
+      return this._run(type, geom, moreGeoms)
+    } finally {
+      resetTolerance()
+    }
+  }
+
+  _run(type, geom, moreGeoms) {
     /* Convert inputs to MultiPoly objects */
     const multipolys = [new geomIn.MultiPolyIn(geom, true)]
     for (let i = 0, iMax = moreGeoms.length; i < iMax; i++) {

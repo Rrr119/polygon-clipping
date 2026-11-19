@@ -2,6 +2,11 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+- Add optional `tolerance` option to all four boolean operations, to control the coordinate snapping precision
+- Handle self-intersecting (self-crossing & self-touching) input rings at any coordinate scale, and add a test suite covering them
+
 ## v0.15.7 (2023-12-18)
 
 - fix packaging issues with v0.15.6

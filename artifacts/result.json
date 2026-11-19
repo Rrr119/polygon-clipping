@@ -1,0 +1,18 @@
+{
+  "uid": "26324",
+  "harness": "Codex CLI",
+  "snapshotUrl": "https://github.com/Rrr119/polygon-clipping/commit/029f164df61ddaef39e5cb9888422d66b3775fa0",
+  "harnessVersion": "codex-cli 0.167.2",
+  "operatingSystem": "Ubuntu 26.04.1 LTS",
+  "operatingSystemCell": [
+    "MacOS/Linux"
+  ],
+  "outputDirectory": "/home/dev/feedback/uid26324",
+  "wslDistro": "Ubuntu-26.04",
+  "B": {
+    "success": false,
+    "canceled": true,
+    "error": "任务已取消",
+    "side": "B"
+  }
+}

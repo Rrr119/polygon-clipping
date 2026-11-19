@@ -1,0 +1,17 @@
+{
+  "root": "/home/dev/feedback/uid26324",
+  "B": "/home/dev/feedback/uid26324",
+  "sha": "029f164df61ddaef39e5cb9888422d66b3775fa0",
+  "wslDistro": "Ubuntu-26.04",
+  "source": {
+    "owner": "mfogel",
+    "repo": "polygon-clipping",
+    "sha": "029f164df61ddaef39e5cb9888422d66b3775fa0"
+  },
+  "fork": {
+    "owner": "Rrr119",
+    "repo": "polygon-clipping",
+    "cloneUrl": "https://github.com/Rrr119/polygon-clipping.git"
+  },
+  "at": "2026-11-18T23:36:01.085Z"
+}

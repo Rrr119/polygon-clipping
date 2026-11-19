@@ -55,7 +55,23 @@ let epsilon$1 = Number.EPSILON;
 
 // IE Polyfill
 if (epsilon$1 === undefined) epsilon$1 = Math.pow(2, -52);
-const EPSILON_SQ = epsilon$1 * epsilon$1;
+const DEFAULT_EPSILON = epsilon$1;
+let epsilonSq = epsilon$1 * epsilon$1;
+
+/* The tolerance controls how close two coordinates can be before they
+ * are snapped together (considered equal). It must be a positive,
+ * finite number. */
+const setTolerance = tolerance => {
+  if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance <= 0) {
+    throw new Error(`Invalid tolerance: ${tolerance}. ` + "Tolerance must be a positive, finite number.");
+  }
+  epsilon$1 = tolerance;
+  epsilonSq = tolerance * tolerance;
+};
+const resetTolerance = () => {
+  epsilon$1 = DEFAULT_EPSILON;
+  epsilonSq = DEFAULT_EPSILON * DEFAULT_EPSILON;
+};
 
 /* FLP comparator */
 const cmp = (a, b) => {
@@ -68,7 +84,7 @@ const cmp = (a, b) => {
 
   // check if they're flp equal
   const ab = a - b;
-  if (ab * ab < EPSILON_SQ * a * b) {
+  if (ab * ab < epsilonSq * a * b) {
     return 0;
   }
 
@@ -1674,13 +1690,27 @@ class SweepLine {
 }
 
 // Limits on iterative processes to prevent infinite loops - usually caused by floating-point math round-off errors.
-const POLYGON_CLIPPING_MAX_QUEUE_SIZE = typeof process !== "undefined" && process.env.POLYGON_CLIPPING_MAX_QUEUE_SIZE || 1000000;
-const POLYGON_CLIPPING_MAX_SWEEPLINE_SEGMENTS = typeof process !== "undefined" && process.env.POLYGON_CLIPPING_MAX_SWEEPLINE_SEGMENTS || 1000000;
+const env = typeof process !== "undefined" && typeof process.env !== "undefined" ? process.env : {};
+const POLYGON_CLIPPING_MAX_QUEUE_SIZE = env.POLYGON_CLIPPING_MAX_QUEUE_SIZE || 1000000;
+const POLYGON_CLIPPING_MAX_SWEEPLINE_SEGMENTS = env.POLYGON_CLIPPING_MAX_SWEEPLINE_SEGMENTS || 1000000;
 class Operation {
   run(type, geom, moreGeoms) {
+    let options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
     operation.type = type;
     rounder.reset();
 
+    /* Apply an optional user-provided tolerance for coordinate snapping.
+     * This is especially relevant for self-intersecting inputs, where
+     * computed intersection points can otherwise be snapped away,
+     * collapsing the geometry to an empty result. */
+    if (options.tolerance !== undefined) setTolerance(options.tolerance);
+    try {
+      return this._run(type, geom, moreGeoms);
+    } finally {
+      resetTolerance();
+    }
+  }
+  _run(type, geom, moreGeoms) {
     /* Convert inputs to MultiPoly objects */
     const multipolys = [new MultiPolyIn(geom, true)];
     for (let i = 0, iMax = moreGeoms.length; i < iMax; i++) {
@@ -1769,29 +1799,61 @@ class Operation {
 // singleton available by import
 const operation = new Operation();
 
-const union = function (geom) {
-  for (var _len = arguments.length, moreGeoms = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-    moreGeoms[_key - 1] = arguments[_key];
+/* The last argument may optionally be an options object (eg { tolerance }).
+ * Geometries are always arrays, so a trailing non-array object is
+ * unambiguously an options object. */
+const parseArgs = args => {
+  const lastArg = args[args.length - 1];
+  if (args.length > 0 && typeof lastArg === "object" && lastArg !== null && !Array.isArray(lastArg)) {
+    return {
+      geoms: args.slice(0, -1),
+      options: lastArg
+    };
   }
-  return operation.run("union", geom, moreGeoms);
+  return {
+    geoms: args,
+    options: {}
+  };
+};
+const union = function (geom) {
+  for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    args[_key - 1] = arguments[_key];
+  }
+  const {
+    geoms,
+    options
+  } = parseArgs(args);
+  return operation.run("union", geom, geoms, options);
 };
 const intersection = function (geom) {
-  for (var _len2 = arguments.length, moreGeoms = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
-    moreGeoms[_key2 - 1] = arguments[_key2];
+  for (var _len2 = arguments.length, args = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+    args[_key2 - 1] = arguments[_key2];
   }
-  return operation.run("intersection", geom, moreGeoms);
+  const {
+    geoms,
+    options
+  } = parseArgs(args);
+  return operation.run("intersection", geom, geoms, options);
 };
 const xor = function (geom) {
-  for (var _len3 = arguments.length, moreGeoms = new Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
-    moreGeoms[_key3 - 1] = arguments[_key3];
+  for (var _len3 = arguments.length, args = new Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
+    args[_key3 - 1] = arguments[_key3];
   }
-  return operation.run("xor", geom, moreGeoms);
+  const {
+    geoms,
+    options
+  } = parseArgs(args);
+  return operation.run("xor", geom, geoms, options);
 };
 const difference = function (subjectGeom) {
-  for (var _len4 = arguments.length, clippingGeoms = new Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
-    clippingGeoms[_key4 - 1] = arguments[_key4];
+  for (var _len4 = arguments.length, args = new Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
+    args[_key4 - 1] = arguments[_key4];
   }
-  return operation.run("difference", subjectGeom, clippingGeoms);
+  const {
+    geoms,
+    options
+  } = parseArgs(args);
+  return operation.run("difference", subjectGeom, geoms, options);
 };
 var index = {
   union: union,

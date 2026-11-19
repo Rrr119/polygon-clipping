@@ -9,7 +9,30 @@ let epsilon = Number.EPSILON
 // IE Polyfill
 if (epsilon === undefined) epsilon = Math.pow(2, -52)
 
-const EPSILON_SQ = epsilon * epsilon
+const DEFAULT_EPSILON = epsilon
+
+let epsilonSq = epsilon * epsilon
+
+/* The tolerance controls how close two coordinates can be before they
+ * are snapped together (considered equal). It must be a positive,
+ * finite number. */
+export const setTolerance = (tolerance) => {
+  if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance <= 0) {
+    throw new Error(
+      `Invalid tolerance: ${tolerance}. ` +
+        "Tolerance must be a positive, finite number.",
+    )
+  }
+  epsilon = tolerance
+  epsilonSq = tolerance * tolerance
+}
+
+export const resetTolerance = () => {
+  epsilon = DEFAULT_EPSILON
+  epsilonSq = DEFAULT_EPSILON * DEFAULT_EPSILON
+}
+
+export const getTolerance = () => epsilon
 
 /* FLP comparator */
 export const cmp = (a, b) => {
@@ -22,7 +45,7 @@ export const cmp = (a, b) => {
 
   // check if they're flp equal
   const ab = a - b
-  if (ab * ab < EPSILON_SQ * a * b) {
+  if (ab * ab < epsilonSq * a * b) {
     return 0
   }
 
